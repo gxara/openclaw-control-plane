@@ -4,6 +4,7 @@ import type { IngestEvent } from "@control-plane/event-schema";
 import type { AgentState, StoredEvent } from "./types.js";
 
 const DATA_ROOT = process.env.DATA_ROOT ?? "./data";
+const WORKSPACES_ROOT = path.join(DATA_ROOT, "workspaces");
 
 function runPath(workspaceId: string, runId: string): string {
   return path.join(DATA_ROOT, "workspaces", workspaceId, "runs", runId);
@@ -46,8 +47,9 @@ export async function appendEvent(event: IngestEvent): Promise<boolean> {
 }
 
 function inferStatus(eventType: string, data: Record<string, unknown>): AgentState["status"] {
-  if (eventType === "error" || eventType.includes("error")) return "error";
-  if (eventType === "task_progress") {
+  if (eventType === "error" || eventType.includes("error") || eventType === "task_failed")
+    return "error";
+  if (eventType === "task_started" || eventType === "task_progress") {
     const progress = data.progress as number | undefined;
     if (progress !== undefined && progress > 0 && progress < 1) return "working";
   }
@@ -93,6 +95,25 @@ export interface GraphData {
     last_message: string;
   }>;
   edges: Array<{ source: string; target: string }>;
+}
+
+export async function listWorkspaces(): Promise<string[]> {
+  try {
+    const entries = await fs.readdir(WORKSPACES_ROOT, { withFileTypes: true });
+    return entries.filter((e) => e.isDirectory()).map((e) => e.name);
+  } catch {
+    return [];
+  }
+}
+
+export async function listRuns(workspaceId: string): Promise<string[]> {
+  const runsDir = path.join(WORKSPACES_ROOT, workspaceId, "runs");
+  try {
+    const entries = await fs.readdir(runsDir, { withFileTypes: true });
+    return entries.filter((e) => e.isDirectory()).map((e) => e.name);
+  } catch {
+    return [];
+  }
 }
 
 export async function getGraph(

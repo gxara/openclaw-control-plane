@@ -59,6 +59,24 @@ Connect to `GET /v1/stream?workspace_id=ws_default` for real-time updates.
 ./scripts/seed-events.sh
 ```
 
+## OpenClaw adapter
+
+Syncs OpenClaw session logs to the Control Plane. Polls `agents/<name>/sessions/*.jsonl` and maps events to the API.
+
+**Setup:** Set `OPENCLAW_SESSIONS_DIR` (path to `agents` folder) or create `apps/openclaw-adapter/config.json`:
+
+```json
+{ "sessions_dir": "/Users/you/.openclaw/agents" }
+```
+
+**Run:**
+
+```bash
+OPENCLAW_SESSIONS_DIR=/path/to/agents pnpm run adapter
+```
+
+Set `RUN_ID=run_demo` to have OpenClaw agents appear in the default UI run. Ensure the API is running on port 3001.
+
 ## Data
 
 Events are stored under `data/workspaces/<workspace_id>/runs/<run_id>/`:

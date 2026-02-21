@@ -1,7 +1,18 @@
 import type { FastifyInstance } from "fastify";
-import { getGraph, getEvents } from "../storage/fs-storage.js";
+import { getGraph, getEvents, listWorkspaces, listRuns } from "../storage/fs-storage.js";
 
 export async function graphRoutes(app: FastifyInstance): Promise<void> {
+  app.get("/v1/workspaces", async (_request, reply) => {
+    const workspaces = await listWorkspaces();
+    return reply.send({ workspaces });
+  });
+
+  app.get<{ Params: { id: string } }>("/v1/workspaces/:id/runs", async (request, reply) => {
+    const { id } = request.params;
+    const runs = await listRuns(id);
+    return reply.send({ runs });
+  });
+
   app.get<{
     Params: { id: string };
     Querystring: { run_id?: string };
