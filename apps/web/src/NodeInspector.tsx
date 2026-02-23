@@ -3,6 +3,10 @@ interface GraphNode {
   label: string;
   status: string;
   last_message: string;
+  last_heartbeat?: string;
+  nodeType?: "agent" | "session";
+  runId?: string;
+  lastChannel?: string;
 }
 
 interface NodeInspectorProps {
@@ -22,7 +26,9 @@ export function NodeInspector({ node, onClose }: NodeInspectorProps) {
     <div style={overlay}>
       <div style={panel}>
         <div style={header}>
-          <h3 style={title}>{node.label}</h3>
+          <h3 style={title}>
+            {node.nodeType === "session" ? `Session ${node.label}` : node.label}
+          </h3>
           <button style={closeBtn} onClick={onClose} aria-label="Close">
             ×
           </button>
@@ -30,10 +36,24 @@ export function NodeInspector({ node, onClose }: NodeInspectorProps) {
         <dl style={dl}>
           <dt style={dt}>ID</dt>
           <dd style={dd}>{node.id}</dd>
+          {node.runId && (
+            <>
+              <dt style={dt}>Run ID</dt>
+              <dd style={dd}>{node.runId}</dd>
+            </>
+          )}
+          {node.lastChannel && (
+            <>
+              <dt style={dt}>Channel</dt>
+              <dd style={dd}>{node.lastChannel}</dd>
+            </>
+          )}
           <dt style={dt}>Status</dt>
           <dd style={dd}>{STATUS_LABELS[node.status] ?? node.status}</dd>
           <dt style={dt}>Last Message</dt>
           <dd style={dd}>{node.last_message || "—"}</dd>
+          <dt style={dt}>Last Heartbeat</dt>
+          <dd style={dd}>{node.last_heartbeat ? new Date(node.last_heartbeat).toLocaleString() : "—"}</dd>
         </dl>
       </div>
     </div>

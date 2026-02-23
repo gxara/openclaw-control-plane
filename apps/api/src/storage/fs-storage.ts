@@ -5,9 +5,37 @@ import type { AgentState, StoredEvent } from "./types.js";
 
 const DATA_ROOT = process.env.DATA_ROOT ?? "./data";
 const WORKSPACES_ROOT = path.join(DATA_ROOT, "workspaces");
+const OPENCLAW_SESSIONS_DIR = process.env.OPENCLAW_SESSIONS_DIR ?? "";
 
 function runPath(workspaceId: string, runId: string): string {
   return path.join(DATA_ROOT, "workspaces", workspaceId, "runs", runId);
+}
+
+/** sessions.json: sessionKey -> { sessionId, lastChannel, ... } */
+async function readLastChannelFromSessions(
+  sessionId: string
+): Promise<string | undefined> {
+  if (!OPENCLAW_SESSIONS_DIR) return undefined;
+  const root = path.resolve(OPENCLAW_SESSIONS_DIR);
+  try {
+    const agentDirs = await fs.readdir(root, { withFileTypes: true });
+    for (const agentDir of agentDirs) {
+      if (!agentDir.isDirectory()) continue;
+      const storePath = path.join(root, agentDir.name, "sessions", "sessions.json");
+      try {
+        const data = await fs.readFile(storePath, "utf-8");
+        const store = JSON.parse(data) as Record<string, { sessionId?: string; lastChannel?: string }>;
+        for (const entry of Object.values(store)) {
+          if (entry?.sessionId === sessionId) return entry.lastChannel;
+        }
+      } catch {
+        // skip
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return undefined;
 }
 
 export async function appendEvent(event: IngestEvent): Promise<boolean> {
@@ -49,7 +77,7 @@ export async function appendEvent(event: IngestEvent): Promise<boolean> {
 function inferStatus(eventType: string, data: Record<string, unknown>): AgentState["status"] {
   if (eventType === "error" || eventType.includes("error") || eventType === "task_failed")
     return "error";
-  if (eventType === "task_started" || eventType === "task_progress") {
+  if (eventType === "user_message" || eventType === "assistant_message") {
     const progress = data.progress as number | undefined;
     if (progress !== undefined && progress > 0 && progress < 1) return "working";
   }
@@ -77,6 +105,7 @@ async function updateAgentState(event: IngestEvent): Promise<void> {
     label: event.agent.name,
     status,
     last_message: message,
+    last_heartbeat: event.event.ts,
     agent: event.agent,
   };
 
@@ -87,13 +116,20 @@ async function updateAgentState(event: IngestEvent): Promise<void> {
   );
 }
 
+export interface GraphNodeData {
+  id: string;
+  label: string;
+  status: string;
+  last_message: string;
+  last_heartbeat?: string;
+  parent?: string;
+  nodeType?: "agent" | "session";
+  runId?: string;
+  lastChannel?: string;
+}
+
 export interface GraphData {
-  nodes: Array<{
-    id: string;
-    label: string;
-    status: string;
-    last_message: string;
-  }>;
+  nodes: GraphNodeData[];
   edges: Array<{ source: string; target: string }>;
 }
 
@@ -131,14 +167,80 @@ export async function getGraph(
     return { nodes: [], edges: [] };
   }
 
+  console.log(workspaceId, runId);
+  console.log(agents);
+
   const nodes = Object.values(agents).map((a) => ({
     id: a.id,
     label: a.label,
+    lastChannel: a.lastChannel,
     status: a.status,
     last_message: a.last_message,
+    last_heartbeat: a.last_heartbeat,
   }));
 
   return { nodes, edges: [] };
+}
+
+export async function getGraphAllRuns(workspaceId: string): Promise<GraphData> {
+  const runs = await listRuns(workspaceId);
+  const agentsById = new Map<string, GraphNodeData>();
+  const nodes: GraphNodeData[] = [];
+  const edgeList: Array<{ source: string; target: string }> = [];
+
+  for (const runId of runs) {
+    const graph = await getGraph(workspaceId, runId);
+    const lastChannel = await readLastChannelFromSessions(runId);
+    for (const node of graph.nodes) {
+      const existing = agentsById.get(node.id);
+      const nodeHb = node.last_heartbeat ?? "";
+      const existingHb = existing?.last_heartbeat ?? "";
+      if (!existing || nodeHb > existingHb) {
+        const agentNode: GraphNodeData = {
+          ...node,
+          nodeType: "agent",
+        };
+        agentsById.set(node.id, agentNode);
+      }
+      const sessionId = `session:${node.id}:${runId}`;
+      nodes.push({
+        id: sessionId,
+        label: runId.slice(0, 8),
+        status: node.status,
+        last_message: node.last_message,
+        last_heartbeat: node.last_heartbeat,
+        nodeType: "session",
+        runId,
+        lastChannel,
+      });
+      edgeList.push({ source: node.id, target: sessionId });
+    }
+  }
+
+  const agentNodes = Array.from(agentsById.values());
+  return {
+    nodes: [...agentNodes, ...nodes],
+    edges: edgeList,
+  };
+}
+
+
+export async function getEventsAllRuns(
+  workspaceId: string,
+  limit = 50
+): Promise<StoredEvent[]> {
+  const runs = await listRuns(workspaceId);
+  const all: StoredEvent[] = [];
+  for (const runId of runs) {
+    const events = await getEvents(workspaceId, runId, limit);
+    all.push(...events);
+  }
+  all.sort((a, b) => {
+    const ta = a.event?.ts ?? "";
+    const tb = b.event?.ts ?? "";
+    return tb.localeCompare(ta);
+  });
+  return all.slice(0, limit);
 }
 
 export async function getEvents(

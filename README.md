@@ -1,4 +1,4 @@
-# Control Plane
+# Openclaw Control Plane
 
 A visual orchestration and observability layer for AI agents. Self-hosted, open-source MVP.
 

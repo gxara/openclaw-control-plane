@@ -5,6 +5,7 @@ export interface AgentState {
   label: string;
   status: "idle" | "thinking" | "working" | "error";
   last_message: string;
+  last_heartbeat?: string;
   agent: IngestEvent["agent"];
 }
 

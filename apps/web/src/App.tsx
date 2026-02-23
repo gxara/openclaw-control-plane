@@ -10,6 +10,10 @@ interface GraphNode {
   label: string;
   status: string;
   last_message: string;
+  last_heartbeat?: string;
+  nodeType?: "agent" | "session";
+  runId?: string;
+  lastChannel?: string;
 }
 
 interface GraphData {
@@ -25,9 +29,7 @@ interface StoredEvent {
 
 export default function App() {
   const [workspaces, setWorkspaces] = useState<string[]>([]);
-  const [runs, setRuns] = useState<string[]>([]);
   const [workspaceId, setWorkspaceId] = useState("ws_default");
-  const [runId, setRunId] = useState("run_demo");
   const [graph, setGraph] = useState<GraphData>({ nodes: [], edges: [] });
   const [events, setEvents] = useState<StoredEvent[]>([]);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
@@ -37,57 +39,35 @@ export default function App() {
     const data = await res.json();
     const list = data.workspaces ?? [];
     setWorkspaces(list);
-    if (list.length > 0 && !list.includes(workspaceId)) {
-      setWorkspaceId(list[0]);
-    }
-  }, []);
-
-  const fetchRuns = useCallback(async (wsId: string) => {
-    const res = await fetch(`${API}/v1/workspaces/${wsId}/runs`);
-    const data = await res.json();
-    const list = data.runs ?? [];
-    setRuns(list);
-    setRunId((prev) =>
+    setWorkspaceId((prev) =>
       list.length > 0 && !list.includes(prev) ? list[0] : prev
     );
   }, []);
 
-  const fetchGraph = useCallback(
-    async (wsId: string, rId: string) => {
-      const res = await fetch(
-        `${API}/v1/workspaces/${wsId}/graph?run_id=${rId}`
-      );
-      const data = await res.json();
-      setGraph(data);
-    },
-    []
-  );
+  const fetchGraph = useCallback(async (wsId: string) => {
+    const res = await fetch(`${API}/v1/workspaces/${wsId}/graph`);
+    const data = await res.json();
+    setGraph(data);
+  }, []);
 
-  const fetchEvents = useCallback(
-    async (wsId: string, rId: string) => {
-      const res = await fetch(
-        `${API}/v1/workspaces/${wsId}/events?run_id=${rId}&limit=50`
-      );
-      const data = await res.json();
-      setEvents(data.events ?? []);
-    },
-    []
-  );
+  const fetchEvents = useCallback(async (wsId: string) => {
+    const res = await fetch(
+      `${API}/v1/workspaces/${wsId}/events?limit=50`
+    );
+    const data = await res.json();
+    setEvents(data.events ?? []);
+  }, []);
 
   useEffect(() => {
     fetchWorkspaces();
   }, [fetchWorkspaces]);
 
   useEffect(() => {
-    if (workspaceId) fetchRuns(workspaceId);
-  }, [workspaceId, fetchRuns]);
-
-  useEffect(() => {
-    if (workspaceId && runId) {
-      fetchGraph(workspaceId, runId);
-      fetchEvents(workspaceId, runId);
+    if (workspaceId) {
+      fetchGraph(workspaceId);
+      fetchEvents(workspaceId);
     }
-  }, [workspaceId, runId, fetchGraph, fetchEvents]);
+  }, [workspaceId, fetchGraph, fetchEvents]);
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -96,14 +76,13 @@ export default function App() {
       const ev = JSON.parse(e.data) as { type: string };
       if (ev.type === "event.created" || ev.type === "agent.updated") {
         fetchWorkspaces();
-        fetchRuns(workspaceId);
-        fetchGraph(workspaceId, runId);
-        fetchEvents(workspaceId, runId);
+        fetchGraph(workspaceId);
+        fetchEvents(workspaceId);
       }
     };
     es.onerror = () => es.close();
     return () => es.close();
-  }, [workspaceId, runId, fetchWorkspaces, fetchRuns, fetchGraph, fetchEvents]);
+  }, [workspaceId, fetchWorkspaces, fetchGraph, fetchEvents]);
 
   return (
     <div style={layout}>
@@ -122,18 +101,6 @@ export default function App() {
                 </option>
               )
             )}
-          </select>
-          <span style={slash}>/</span>
-          <select
-            style={select}
-            value={runId}
-            onChange={(e) => setRunId(e.target.value)}
-          >
-            {(runs.length === 0 ? [runId] : runs).map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
           </select>
         </div>
       </header>
@@ -190,11 +157,6 @@ const select: React.CSSProperties = {
   padding: "4px 8px",
   fontSize: 12,
   cursor: "pointer",
-};
-
-const slash: React.CSSProperties = {
-  color: "#71717a",
-  fontSize: 12,
 };
 
 const main: React.CSSProperties = {

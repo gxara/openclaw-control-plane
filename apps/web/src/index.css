@@ -15,3 +15,103 @@ body {
 #root {
   height: 100%;
 }
+
+.cy-node-card {
+  pointer-events: auto;
+}
+
+.cy-card {
+  border-radius: 6px;
+  padding: 10px 12px;
+  min-width: 120px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Agent nodes: prominent, bordered */
+.cy-card--agent {
+  background: linear-gradient(135deg, #1f1f23 0%, #18181b 100%);
+  border: 1px solid #3f3f46;
+  border-left-width: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.cy-card--agent::before {
+  content: "AGENT";
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #71717a;
+  margin-bottom: 6px;
+}
+
+.cy-card__name {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 4px;
+  color: #e4e4e7;
+}
+
+.cy-card__task {
+  font-size: 11px;
+  color: #a1a1aa;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cy-card__heartbeat {
+  font-size: 10px;
+  color: #71717a;
+}
+
+/* Session nodes: subdued, pill-like */
+.cy-card--session {
+  background: #27272a;
+  border: 1px dashed #3f3f46;
+  border-left-width: 3px;
+  padding: 6px 10px;
+  min-width: 100px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.cy-card--session::before {
+  content: "SESSION";
+  display: block;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #52525b;
+  margin-bottom: 4px;
+}
+
+.cy-card__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.cy-card__channel-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+.cy-card--session .cy-card__name {
+  font-size: 11px;
+  font-weight: 500;
+  color: #d4d4d8;
+}
+
+.cy-card--session .cy-card__task {
+  font-size: 10px;
+  color: #71717a;
+}
+
+.cy-card--session .cy-card__heartbeat {
+  font-size: 9px;
+  color: #52525b;
+}

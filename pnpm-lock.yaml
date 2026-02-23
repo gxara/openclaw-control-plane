@@ -54,6 +54,12 @@ importers:
       cytoscape:
         specifier: ^3.30.4
         version: 3.33.1
+      cytoscape-dagre:
+        specifier: ^2.5.0
+        version: 2.5.0(cytoscape@3.33.1)
+      cytoscape-node-html-label:
+        specifier: ^1.2.2
+        version: 1.2.2(@types/cytoscape@3.31.0)(cytoscape@3.33.1)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -761,9 +767,26 @@ packages:
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
 
+  cytoscape-dagre@2.5.0:
+    resolution: {integrity: sha512-VG2Knemmshop4kh5fpLO27rYcyUaaDkRw+6PiX4bstpB+QFt0p2oauMrsjVbUamGWQ6YNavh7x2em2uZlzV44g==}
+    peerDependencies:
+      cytoscape: ^3.2.22
+
+  cytoscape-node-html-label@1.2.2:
+    resolution: {integrity: sha512-oUVwrlsIlaJJ8QrQFSMdv3uXVXPg6tMH/Tfofr8JuZIovqI4fPqBi6sQgCMcVpS6k9Td0TTjowBsNRw32CESWg==}
+    peerDependencies:
+      '@types/cytoscape': ^3.1.0
+      cytoscape: ^3.0.0
+    peerDependenciesMeta:
+      '@types/cytoscape':
+        optional: true
+
   cytoscape@3.33.1:
     resolution: {integrity: sha512-iJc4TwyANnOGR1OmWhsS9ayRS3s+XQ185FmuHObThD+5AeJCakAAbWv8KimMTt08xCCLNgneQwFp+JRJOr9qGQ==}
     engines: {node: '>=0.10'}
+
+  dagre@0.8.5:
+    resolution: {integrity: sha512-/aTqmnRta7x7MCCpExk7HQL2O4owCT2h8NT//9I1OQ9vt29Pa0BzSAkR5lwFUcQ7491yVi/3CXU9jQ5o0Mn2Sw==}
 
   debug@4.4.3:
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
@@ -844,6 +867,9 @@ packages:
   get-tsconfig@4.13.6:
     resolution: {integrity: sha512-shZT/QMiSHc/YBLxxOkMtgSid5HFoauqCE3/exfsEcwg1WkeqjG+V40yBbBrsD+jW2HDXcs28xOfcbm2jI8Ddw==}
 
+  graphlib@2.1.8:
+    resolution: {integrity: sha512-jcLLfkpoVGmH7/InMC/1hIvOPSUh38oJtGhvrOFGzioE1DZ+0YW16RgmOJhHiuWTvGiJQ9Z1Ik43JvkRPRvE+A==}
+
   ipaddr.js@2.3.0:
     resolution: {integrity: sha512-Zv/pA+ciVFbCSBBjGfaKUya/CcGmUHzTydLMaTwrUUEM2DIEO3iZvueGxmacvmN50fGpGVKeTXpb2LcYQxeVdg==}
     engines: {node: '>= 10'}
@@ -869,6 +895,9 @@ packages:
 
   light-my-request@6.6.0:
     resolution: {integrity: sha512-CHYbu8RtboSIoVsHZ6Ye4cj4Aw/yg2oAFimlF7mNvfDV192LR7nDiKtSIfCuLT7KokPSTn/9kfVLm5OGN0A28A==}
+
+  lodash@4.17.23:
+    resolution: {integrity: sha512-LgVTMpQtIopCi79SJeDiP0TfWi5CNEc/L/aRdTh3yIvmZXTnheWpKjSZhnvMl8iXbC1tFg9gdHHDMLoV7CnG+w==}
 
   loose-envify@1.4.0:
     resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==}
@@ -1569,7 +1598,23 @@ snapshots:
 
   csstype@3.2.3: {}
 
+  cytoscape-dagre@2.5.0(cytoscape@3.33.1):
+    dependencies:
+      cytoscape: 3.33.1
+      dagre: 0.8.5
+
+  cytoscape-node-html-label@1.2.2(@types/cytoscape@3.31.0)(cytoscape@3.33.1):
+    dependencies:
+      cytoscape: 3.33.1
+    optionalDependencies:
+      '@types/cytoscape': 3.31.0
+
   cytoscape@3.33.1: {}
+
+  dagre@0.8.5:
+    dependencies:
+      graphlib: 2.1.8
+      lodash: 4.17.23
 
   debug@4.4.3:
     dependencies:
@@ -1701,6 +1746,10 @@ snapshots:
     dependencies:
       resolve-pkg-maps: 1.0.0
 
+  graphlib@2.1.8:
+    dependencies:
+      lodash: 4.17.23
+
   ipaddr.js@2.3.0: {}
 
   js-tokens@4.0.0: {}
@@ -1720,6 +1769,8 @@ snapshots:
       cookie: 1.1.1
       process-warning: 4.0.1
       set-cookie-parser: 2.7.2
+
+  lodash@4.17.23: {}
 
   loose-envify@1.4.0:
     dependencies:

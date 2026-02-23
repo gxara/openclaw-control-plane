@@ -36,7 +36,8 @@ let ROOT = "";
 async function processFile(
   filePath: string,
   agentName: string,
-  sessionId: string
+  sessionId: string,
+  channel: string
 ): Promise<void> {
   const offset = getOffset(filePath);
   const { objects, newOffset } = await readNewObjects(filePath, offset);
@@ -47,13 +48,22 @@ async function processFile(
     return;
   }
 
+  // const agentMessages = objects.filter(o => o.type === "message" && o.role === "assistant");
+  // const userMessages = objects.filter(o => o.type === "message" && o.role === "user");
+
+
   const runIdOverride = process.env.RUN_ID;
+
   let runId = runIdOverride ?? runIdByFile.get(filePath) ?? sessionId;
+
   const ctx: MappingContext = {
     agentId: `openclaw:${agentName}`,
     agentName,
     runId,
+    lastChannel: channel,
   };
+
+  const messages = [];
 
   for (let i = 0; i < objects.length; i++) {
     const raw = parseObject(objects[i]);
@@ -61,6 +71,10 @@ async function processFile(
     if (!raw) {
       console.warn(`[openclaw-adapter] Failed to parse object at index ${i}`);
       continue;
+    }
+
+    if (raw.type === "message") {
+      messages.push(raw);
     }
 
     if (!runIdOverride && raw.type === "session" && raw.session?.id) {
@@ -121,9 +135,9 @@ async function poll(): Promise<void> {
 
 
   // Then we record events
-  for (const { filePath, agentName, sessionId } of sessions) {
+  for (const { filePath, agentName, sessionId, channel } of sessions) {
     try {
-      await processFile(filePath, agentName, sessionId);
+      await processFile(filePath, agentName, sessionId, channel);
     } catch (err) {
       console.warn(`[openclaw-adapter] Error processing ${filePath}:`, err);
     }

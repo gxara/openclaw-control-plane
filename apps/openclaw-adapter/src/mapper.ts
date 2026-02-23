@@ -6,13 +6,13 @@ export interface MappingContext {
   agentId: string;
   agentName: string;
   runId: string;
+  lastChannel?: string;
 }
 
 export interface OpenClawEvent {
   type?: string;
-  role?: string;
+  message?: { role?: string; content?: { text?: string }[] };
   session?: { id?: string };
-  text?: string;
   stopReason?: string;
   toolCall?: { name?: string };
   details?: { status?: string };
@@ -46,7 +46,7 @@ export function mapToControlPlane(
         type: "agent.register",
         ts,
         dedupe_key: dedupe("session"),
-        data: { session_id: raw.session.id },
+        data: { session_id: raw.session.id, last_channel: ctx.lastChannel },
       },
     });
     out.push({
@@ -55,33 +55,35 @@ export function mapToControlPlane(
         type: "run.started",
         ts,
         dedupe_key: dedupe("run"),
-        data: {},
+        data: { last_channel: ctx.lastChannel },
       },
     });
   }
 
-  if (raw.type === "message" && raw.role === "user" && raw.text) {
-    const title = String(raw.text).slice(0, 80);
+  if (raw.type === "message" && raw?.message?.role === "user") {
+    const content = raw.message?.content?.map(c => c?.text)?.join("\n");
+    const title = content ? String(content).slice(0, 80) : "User message";
     out.push({
       ...base,
       event: {
-        type: "task_started",
+        type: "user_message",
         ts,
-        dedupe_key: dedupe("task:" + title),
-        data: { message: title, status: "working", progress: 0 },
+        dedupe_key: dedupe("user:" + title),
+        data: { message: title, last_channel: ctx.lastChannel },
       },
     });
   }
 
-  if (raw.type === "message" && raw.role === "assistant") {
-    const toolName = raw.toolCall?.name ?? "thinking";
+  if (raw.type === "message" && raw?.message?.role === "assistant") {
+    const content = raw.message?.content?.map(c => c?.text)?.join("\n");
+    const toolName = content ? String(content).slice(0, 80) : "Assistant message";
     out.push({
       ...base,
       event: {
-        type: "task_progress",
+        type: "assistant_message",
         ts,
         dedupe_key: dedupe("assistant:" + lineIndex),
-        data: { message: toolName, status: "working", progress: 0.5 },
+        data: { message: toolName, last_channel: ctx.lastChannel },
       },
     });
   }
@@ -98,6 +100,7 @@ export function mapToControlPlane(
           message: failed ? "Error" : "Tool completed",
           status: failed ? "error" : "working",
           progress: failed ? 0 : 0.7,
+          last_channel: ctx.lastChannel,
         },
       },
     });
@@ -110,7 +113,7 @@ export function mapToControlPlane(
         type: "task_progress",
         ts,
         dedupe_key: dedupe("done"),
-        data: { message: "Completed", status: "idle", progress: 1 },
+        data: { message: "Completed", status: "idle", progress: 1, last_channel: ctx.lastChannel },
       },
     });
   }
